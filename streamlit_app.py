@@ -93,16 +93,32 @@ elif example_selected != "None":
     except Exception as e:
         st.error(f"❌ Failed to load example file: {e}")
 
-# Add Detect button
 if df is not None:
+    num_rows = len(df)
+    st.markdown(f"### 📊 Data contains {num_rows} rows.")
+
+    start_row = st.slider("Select Start Row", min_value=0, max_value=num_rows-1, value=0)
+    end_row = st.slider("Select End Row", min_value=start_row, max_value=num_rows-1, value=num_rows-1)
+
+    df_subset = df.iloc[start_row:end_row+1]
+
     st.markdown("---")
     if st.button("🚀 Detect Pattern"):
         with st.spinner("Detecting pattern and generating chart..."):
-            buf, error_msg = detect_and_plot(df, pattern_name)
+            buf, error_msg = detect_and_plot(df_subset, pattern_name)
+        
         if error_msg:
             st.warning(error_msg)
         else:
-            st.image(buf, caption=f"{pattern_name} Pattern Detected in: {source_label}", use_container_width=True)
-            st.download_button("📥 Download Chart", data=buf, file_name=f"{pattern_name}_detected.png", mime="image/png")
+            st.session_state.chart_buffer = buf
+            st.session_state.chart_label = f"{pattern_name} Pattern Detected in: {source_label}"
+            st.session_state.chart_file_name = f"{pattern_name}_detected.png"
+            st.session_state.chart_download = True
+
+    if 'chart_buffer' in st.session_state:
+        st.image(st.session_state.chart_buffer, caption=st.session_state.chart_label, use_container_width=True)
+        if st.session_state.chart_download:
+            st.download_button("📥 Download Chart", data=st.session_state.chart_buffer, 
+                               file_name=st.session_state.chart_file_name, mime="image/png")
 else:
     st.info("Upload a CSV file or choose an example to continue.")
